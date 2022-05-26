@@ -66,6 +66,14 @@ void show_help()
 using coordinates_t = std::array<double, 2>;
 using solution_t = std::vector<int>;
 using problem_t = std::vector<coordinates_t>;
+
+using col_t = std::array<double, 2>;
+using row_t = std::array<double, 2>;
+using filled_cols_t = std::vector<col_t>;
+using filled_rows_t = std::vector<row_t>;
+using nono_problem_t = std::pair<filled_cols_t, filled_rows_t>;
+using nono_solution_t = std::vector<std::vector<double>>;
+
 /**
  * @brief helper operator for printing the solution
  *
@@ -150,6 +158,66 @@ inline problem_t load_problem(std::string fname)
     }
     return problem;
 }
+
+inline nono_problem_t nono_load_problem(std::string fname)
+{
+    using namespace std;
+    nono_problem_t problem;
+    istream *fst = &cin;
+    ifstream f;
+    if (fname != "")
+    {
+        f = ifstream(fname);
+        fst = &f;
+    }
+    string line;
+
+    // Nonogram size
+    int line_counter = 0;
+    int fs = 0;
+    filled_cols_t filled_cols(8);
+    filled_rows_t filled_rows(11);
+    problem = make_pair(filled_cols, filled_rows);
+
+    while (getline(*fst, line))
+    {
+        stringstream sline(line);
+        double x;
+        while (sline >> x)
+        {
+            int i = 0;
+            if (line_counter == 0)
+            {
+                problem.first.at(i).at(fs) = x;
+            }
+            else if (line_counter == 1)
+            {
+                problem.first.at(i).at(fs) = x;
+            }
+            else if (line_counter == 2)
+            {
+                problem.second.at(i).at(fs) = x;
+            }
+            else if (line_counter == 3)
+            {
+                problem.second.at(i).at(fs) = x;
+            }
+            ++i;
+        }
+        ++line_counter;
+        ++fs;
+        if (fs > 1)
+            fs = 0;
+    }
+    return problem;
+}
+
+// using col_t = std::array<double, 2>;
+// using row_t = std::array<double, 2>;
+// using filled_cols_t = std::vector<col_t>;
+// using filled_rows_t = std::vector<row_t>;
+// using nono_problem_t = std::pair<filled_cols_t, filled_rows_t>;
+// using nono_solution_t = std::vector<std::vector<double>>;
 
 /**
  * @brief full review method that will use goal as a measure how bad is the solution (minimization).
@@ -308,6 +376,7 @@ int main(int argc, char **argv)
     cout << "# fname = " << fname << ";" << std::endl;
 
     /// load the problem at hand
+    auto nono_problem = nono_load_problem(fname);
     auto problem = load_problem(fname);
     solution_t best_solution;
     std::chrono::duration<double> calculation_duration;

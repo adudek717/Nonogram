@@ -356,6 +356,64 @@ std::pair<solution_t, std::chrono::duration<double>> experiment_random_hillclimb
     return {best_solution, calculation_duration};
 }
 
+nono_solution_t generate_random_solution_nono(nono_problem_t problem)
+{
+    nono_solution_t solution;
+    // for (int i = 0; i < problem.size(); i++)
+    //{
+    //     solution.push_back(i);
+    // }
+
+    std::shuffle(solution.begin(), solution.end(), random_generator);
+
+    return solution;
+}
+
+std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hillclimb_nono(nono_problem_t problem,
+                                                                                           int iterations, bool show_progress)
+{
+    using namespace std;
+
+    /// generate initial solution
+    nono_solution_t solution = generate_random_solution_nono(problem);
+
+    /// prepare important functions:
+    /// goal function for solution - how good or bad it is. We minimize this function
+    function<double(solution_t)> goal = [problem](auto s)
+    {
+        return tsp_problem_cost_function(problem, s);
+    };
+
+    /// generate next solution for the method
+    function<solution_t(solution_t)> next_solution = [problem](auto s)
+    {
+        uniform_int_distribution<int> distr(0, problem.size() - 1);
+        int a = distr(random_generator);
+        int b = distr(random_generator);
+        swap(s[a], s[b]);
+        return s;
+    };
+
+    /// what is the termination condition
+    int i = 0;
+    function<bool(solution_t)> term_condition = [&](auto s)
+    {
+        i++;
+        return i < iterations;
+    };
+
+    /// run the full review method
+    auto calculation_start = chrono::steady_clock::now();
+    solution_t best_solution = calculate_full_review<solution_t>(solution,
+                                                                 goal, next_solution,
+                                                                 term_condition, show_progress);
+    auto calculation_end = chrono::steady_clock::now();
+
+    /// show the result
+    chrono::duration<double> calculation_duration = calculation_end - calculation_start;
+    return {best_solution, calculation_duration};
+}
+
 int main(int argc, char **argv)
 {
     using namespace std;
@@ -382,6 +440,7 @@ int main(int argc, char **argv)
     solution_t best_solution;
     std::chrono::duration<double> calculation_duration;
 
+    // Testing values
     for (int j = 0; j < nono_problem.first.size(); j++)
     {
         for (int k = 0; k < nono_problem.first.at(j).size(); k++)
@@ -410,6 +469,12 @@ int main(int argc, char **argv)
     {
         auto [a, b] = experiment_random_hillclimb(problem, iterations, show_progress);
         best_solution = a;
+        calculation_duration = b;
+    }
+    else if (method == "random_hillclimb_nono")
+    {
+        auto [a, b] = experiment_random_hillclimb_nono(nono_problem, iterations, show_progress);
+        best_nono_solution = a;
         calculation_duration = b;
     }
     else

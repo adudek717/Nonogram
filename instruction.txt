@@ -1,0 +1,6 @@
+Default launch:
+./a.out -fname zad10.txt -iterations 7000 -method random_hillclimb
+
+
+Nonogram test launch:
+./a.out -fname zadP.txt -iterations 7000 -method random_hillclimb

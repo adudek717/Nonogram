@@ -67,12 +67,15 @@ using coordinates_t = std::array<double, 2>;
 using solution_t = std::vector<int>;
 using problem_t = std::vector<coordinates_t>;
 
-using col_t = std::array<double, 2>;
-using row_t = std::array<double, 2>;
-using filled_cols_t = std::vector<col_t>;
-using filled_rows_t = std::vector<row_t>;
-using nono_problem_t = std::pair<filled_cols_t, filled_rows_t>;
-using nono_solution_t = std::vector<std::vector<double>>;
+// using col_t = std::array<double, 2>;
+// using row_t = std::array<double, 2>;
+// using filled_cols_t = std::vector<col_t>;
+// using filled_rows_t = std::vector<row_t>;
+// using nono_problem_t = std::pair<filled_cols_t, filled_rows_t>;
+using x_axis = std::vector<int>;
+using y_axis = std::vector<int>;
+using nono_problem_t = std::vector<std::vector<int>>;
+using nono_solution_t = std::vector<std::vector<int>>;
 
 /**
  * @brief helper operator for printing the solution
@@ -173,43 +176,46 @@ inline nono_problem_t nono_load_problem(std::string fname)
     string line;
 
     // Nonogram size
-    int line_counter = 0;
-    int fs = 0;
-    filled_cols_t filled_cols(8);
-    filled_rows_t filled_rows(11);
-    problem = make_pair(filled_cols, filled_rows);
+    // filled_cols_t filled_cols(8);
+    // filled_rows_t filled_rows(11);
+    // problem = make_pair(filled_cols, filled_rows);
 
     while (getline(*fst, line))
     {
         stringstream sline(line);
-        double x;
+        int x;
         int i = 0;
+        std::vector<int> row;
         while (sline >> x)
         {
-            if (line_counter == 0)
-            {
-                problem.first.at(i).at(fs) = x; // fs[0-]   i[o-]
-            }
-            else if (line_counter == 1)
-            {
-                problem.first.at(i).at(fs) = x;
-            }
-            else if (line_counter == 2)
-            {
-                problem.second.at(i).at(fs) = x;
-            }
-            else if (line_counter == 3)
-            {
-                problem.second.at(i).at(fs) = x;
-            }
-            ++i;
+            row.push_back(x);
         }
-        ++line_counter;
-        ++fs;
-        if (fs > 1)
-            fs = 0;
+        problem.push_back(row);
     }
     return problem;
+    // while (getline(*fst, line))
+    //{
+    //     stringstream sline(line);
+    //     double x;
+    //     int i = 0;
+    //     while (sline >> x)
+    //     {
+    //         if (line_counter == 0)
+    //         {
+    //             problem.at(fs).at(i) = x;
+    //         }
+    //         else if (line_counter == 1)
+    //         {
+    //             problem.at(fs).at(i) = x;
+    //         }
+    //         ++i;
+    //     }
+    //     ++line_counter;
+    //     ++fs;
+    //     if (fs > 1)
+    //         fs = 0;
+    // }
+    // return problem;
 }
 
 // using col_t = std::array<double, 2>;
@@ -267,8 +273,8 @@ std::pair<solution_t, std::chrono::duration<double>> experiment_full_revision(pr
         solution.push_back(i);
     }
 
-    /// prepare important functions:
-    /// goal function for solution - how good or bad it is. We minimize this function
+    // prepare important functions:
+    // goal function for solution - how good or bad it is. We minimize this function
     function<double(solution_t)> goal = [problem](auto s)
     {
         return tsp_problem_cost_function(problem, s);
@@ -359,15 +365,41 @@ std::pair<solution_t, std::chrono::duration<double>> experiment_random_hillclimb
 nono_solution_t generate_random_solution_nono(nono_problem_t problem)
 {
     nono_solution_t solution;
+    std::uniform_int_distribution<int> distr(0, 1);
+    for (int i = 0; i < problem.at(0).size(); i++)
+    {
+        for (int j = 0; j < problem.at(1).size(); j++)
+        {
+            solution.at(i).at(j) = distr(random_generator);
+        }
+    }
     // for (int i = 0; i < problem.size(); i++)
     //{
     //     solution.push_back(i);
     // }
 
-    std::shuffle(solution.begin(), solution.end(), random_generator);
+    // std::shuffle(solution.begin(), solution.end(), random_generator);
 
     return solution;
 }
+
+inline int nono_problem_cost_function(const nono_problem_t problem, const nono_solution_t solution)
+{
+    int bad_cells = 0;
+    if (problem.size() != solution.size())
+        std::cout << "Problem size and solution size are different!" << std::endl;
+    for (int i = 0; i < problem.size(); i++)
+    {
+        for (int j = 0; j < problem.at(i).size(); j++)
+        {
+            if (problem.at(i).size() != solution.at(i).size())
+                std::cout << "Problem size and solution size are different!" << std::endl;
+            if (problem.at(i).at(j) != solution.at(i).at(j))
+                bad_cells++;
+        }
+    }
+    return bad_cells;
+};
 
 std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hillclimb_nono(nono_problem_t problem,
                                                                                            int iterations, bool show_progress)
@@ -379,9 +411,14 @@ std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hill
 
     /// prepare important functions:
     /// goal function for solution - how good or bad it is. We minimize this function
-    function<double(solution_t)> goal = [problem](auto s)
+    // function<double(solution_t)> goal = [problem](auto s)
+    //{
+    //     return tsp_problem_cost_function(problem, s);
+    // };
+
+    function<double(nono_solution_t)> goal = [problem](auto s)
     {
-        return tsp_problem_cost_function(problem, s);
+        return nono_problem_cost_function(problem, s);
     };
 
     /// generate next solution for the method
@@ -401,15 +438,16 @@ std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hill
         i++;
         return i < iterations;
     };
+    nono_solution_t best_solution;
 
     /// run the full review method
     auto calculation_start = chrono::steady_clock::now();
-    solution_t best_solution = calculate_full_review<solution_t>(solution,
-                                                                 goal, next_solution,
-                                                                 term_condition, show_progress);
+    // solution_t best_solution = calculate_full_review<nono_solution_t>(solution,
+    //                                                                    goal, next_solution,
+    //                                                                    term_condition, show_progress);
     auto calculation_end = chrono::steady_clock::now();
-
-    /// show the result
+    //
+    ///// show the result
     chrono::duration<double> calculation_duration = calculation_end - calculation_start;
     return {best_solution, calculation_duration};
 }
@@ -440,24 +478,18 @@ int main(int argc, char **argv)
     solution_t best_solution;
     std::chrono::duration<double> calculation_duration;
 
-    // Testing values
-    for (int j = 0; j < nono_problem.first.size(); j++)
+    // Testing
+    cout << endl
+         << "Problem: " << endl;
+    for (int i = 0; i < nono_problem.size(); i++)
     {
-        for (int k = 0; k < nono_problem.first.at(j).size(); k++)
+        for (int j = 0; j < nono_problem.at(i).size(); j++)
         {
-            cout << nono_problem.first.at(j).at(k) << " ";
+            cout << nono_problem.at(i).at(j) << " ";
         }
         cout << endl;
     }
     cout << endl;
-    for (int j = 0; j < nono_problem.second.size(); j++)
-    {
-        for (int k = 0; k < nono_problem.second.at(j).size(); k++)
-        {
-            cout << nono_problem.second.at(j).at(k) << " ";
-        }
-        cout << endl;
-    }
 
     if (method == "full_revision")
     {
@@ -473,9 +505,9 @@ int main(int argc, char **argv)
     }
     else if (method == "random_hillclimb_nono")
     {
-        auto [a, b] = experiment_random_hillclimb_nono(nono_problem, iterations, show_progress);
-        best_nono_solution = a;
-        calculation_duration = b;
+        // auto [a, b] = experiment_random_hillclimb_nono(nono_problem, iterations, show_progress);
+        // best_nono_solution = a;
+        // calculation_duration = b;
     }
     else
     {

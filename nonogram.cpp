@@ -183,12 +183,12 @@ inline nono_problem_t nono_load_problem(std::string fname)
     {
         stringstream sline(line);
         double x;
+        int i = 0;
         while (sline >> x)
         {
-            int i = 0;
             if (line_counter == 0)
             {
-                problem.first.at(i).at(fs) = x;
+                problem.first.at(i).at(fs) = x; // fs[0-]   i[o-]
             }
             else if (line_counter == 1)
             {
@@ -378,8 +378,27 @@ int main(int argc, char **argv)
     /// load the problem at hand
     auto nono_problem = nono_load_problem(fname);
     auto problem = load_problem(fname);
+    nono_solution_t best_nono_solution;
     solution_t best_solution;
     std::chrono::duration<double> calculation_duration;
+
+    for (int j = 0; j < nono_problem.first.size(); j++)
+    {
+        for (int k = 0; k < nono_problem.first.at(j).size(); k++)
+        {
+            cout << nono_problem.first.at(j).at(k) << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+    for (int j = 0; j < nono_problem.second.size(); j++)
+    {
+        for (int k = 0; k < nono_problem.second.at(j).size(); k++)
+        {
+            cout << nono_problem.second.at(j).at(k) << " ";
+        }
+        cout << endl;
+    }
 
     if (method == "full_revision")
     {

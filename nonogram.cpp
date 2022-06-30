@@ -93,6 +93,15 @@ inline std::ostream &operator<<(std::ostream &o, solution_t sol)
     return o;
 }
 
+inline std::ostream &operator<<(std::ostream &o, nono_solution_t sol)
+{
+    for (int i = 0; i < sol.size(); i++)
+    {
+        o << (i == 0 ? "" : ", ") << sol[i];
+    }
+    return o;
+}
+
 /**
  * @brief substracting two vectors
  *
@@ -262,6 +271,34 @@ T calculate_full_review(T start_solution, std::function<double(T)> cost,
     return best_solution;
 }
 
+template <typename T>
+T calculate_full_review_nono(T start_solution, std::function<double(T)> cost,
+                             std::function<T(T)> next_solution, std::function<bool(T)> term_condition, bool progress = false)
+{
+    using namespace std;
+    auto solution = start_solution;
+    auto best_solution = solution;
+    int iteration_counter = 0;
+    do
+    {
+        cout << "Solution cost: " << cost(solution) << endl;
+        cout << "Best cost: " << cost(best_solution) << endl;
+        if ((cost(solution) < cost(best_solution)) || (iteration_counter == 0))
+        {
+            if (progress)
+                cout << (iteration_counter - 1) << " " << cost(best_solution) << " # " << solution << endl;
+            best_solution = solution;
+            if (progress)
+                cout << iteration_counter << " " << cost(best_solution) << " # " << solution << endl;
+        }
+        iteration_counter++;
+        solution = next_solution(solution);
+    } while (term_condition(solution));
+    if (progress)
+        cout << iteration_counter << " " << cost(best_solution) << " # " << solution << endl;
+    return best_solution;
+}
+
 std::pair<solution_t, std::chrono::duration<double>> experiment_full_revision(problem_t problem, bool show_progress)
 {
     using namespace std;
@@ -366,12 +403,15 @@ nono_solution_t generate_random_solution_nono(nono_problem_t problem)
 {
     nono_solution_t solution;
     std::uniform_int_distribution<int> distr(0, 1);
-    for (int i = 0; i < problem.at(0).size(); i++)
+    for (int i = 0; i < problem.size(); i++)
     {
-        for (int j = 0; j < problem.at(1).size(); j++)
+        std::vector<int> nums;
+        for (int j = 0; j < problem.at(0).size(); j++)
         {
-            solution.at(i).at(j) = distr(random_generator);
+            nums.push_back(distr(random_generator));
+            // solution.at(i).at(j) = distr(random_generator);
         }
+        solution.push_back(nums);
     }
     // for (int i = 0; i < problem.size(); i++)
     //{
@@ -387,13 +427,22 @@ inline int nono_problem_cost_function(const nono_problem_t problem, const nono_s
 {
     int bad_cells = 0;
     if (problem.size() != solution.size())
+    {
         std::cout << "Problem size and solution size are different!" << std::endl;
+        std::cout << "Problem size: " << problem.size() << std::endl;
+        std::cout << "Solution size: " << solution.size() << std::endl;
+    }
+
     for (int i = 0; i < problem.size(); i++)
     {
         for (int j = 0; j < problem.at(i).size(); j++)
         {
             if (problem.at(i).size() != solution.at(i).size())
+            {
                 std::cout << "Problem size and solution size are different!" << std::endl;
+                std::cout << "Problem at i size: " << problem.at(i).size() << std::endl;
+                std::cout << "Solution at i size: " << solution.at(i).size() << std::endl;
+            }
             if (problem.at(i).at(j) != solution.at(i).at(j))
                 bad_cells++;
         }
@@ -422,7 +471,7 @@ std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hill
     };
 
     /// generate next solution for the method
-    function<solution_t(solution_t)> next_solution = [problem](auto s)
+    function<nono_solution_t(nono_solution_t)> next_solution = [problem](auto s)
     {
         uniform_int_distribution<int> distr(0, problem.size() - 1);
         int a = distr(random_generator);
@@ -433,7 +482,7 @@ std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hill
 
     /// what is the termination condition
     int i = 0;
-    function<bool(solution_t)> term_condition = [&](auto s)
+    function<bool(nono_solution_t)> term_condition = [&](auto s)
     {
         i++;
         return i < iterations;
@@ -442,9 +491,9 @@ std::pair<nono_solution_t, std::chrono::duration<double>> experiment_random_hill
 
     /// run the full review method
     auto calculation_start = chrono::steady_clock::now();
-    // solution_t best_solution = calculate_full_review<nono_solution_t>(solution,
-    //                                                                    goal, next_solution,
-    //                                                                    term_condition, show_progress);
+    best_solution = calculate_full_review_nono<nono_solution_t>(solution,
+                                                                goal, next_solution,
+                                                                term_condition, show_progress);
     auto calculation_end = chrono::steady_clock::now();
     //
     ///// show the result
@@ -505,17 +554,18 @@ int main(int argc, char **argv)
     }
     else if (method == "random_hillclimb_nono")
     {
-        // auto [a, b] = experiment_random_hillclimb_nono(nono_problem, iterations, show_progress);
-        // best_nono_solution = a;
-        // calculation_duration = b;
+
+        auto [a, b] = experiment_random_hillclimb_nono(nono_problem, iterations, show_progress);
+        best_nono_solution = a;
+        calculation_duration = b;
     }
     else
     {
         std::cerr << "unknown method" << std::endl;
     }
 
-    cout << "# " << method << ": best_cost: " << tsp_problem_cost_function(problem, best_solution) << " calculation_time: " << calculation_duration.count() << endl;
-    cout << "# solution: " << best_solution << endl;
+    cout << "# " << method << ": best_cost: " << nono_problem_cost_function(nono_problem, best_nono_solution) << " calculation_time: " << calculation_duration.count() << endl;
+    cout << "# solution: " << best_nono_solution << endl;
 
     return 0;
 }

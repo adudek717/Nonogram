@@ -1,3 +1,5 @@
 -fname_rows zadP-nono-rows.txt -fname_cols zadP-nono-cols.txt
 
 -fname_rows zad3x3-rows.txt -fname_cols zad3x3-cols.txt
+
+-fname_rows zad4x4-rows.txt -fname_cols zad4x4-cols.txt

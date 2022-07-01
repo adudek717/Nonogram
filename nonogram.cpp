@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <random>
+#include <chrono>
 
 using namespace std;
 
@@ -248,11 +249,11 @@ vector<vector<vector<bool>>> generate_neighbors(const vector<vector<bool>> &solu
     vector<vector<vector<bool>>> neighbors;
     for (int i = 0; i < solution.size(); i++)
     {
-
-        for (int j = 0; j < solution.at(i).size(); j++)
+        for (int j = 0; j < solution.at(i).size() - 1; j++)
         {
             vector<vector<bool>> neighbor = solution;
-            neighbor.at(i).at(j) = !neighbor.at(i).at(j);
+            // neighbor.at(i).at(j) = !neighbor.at(i).at(j);
+            swap(neighbor.at(i).at(j), neighbor.at(i).at(j + 1));
             neighbors.push_back(neighbor);
         }
     }
@@ -273,14 +274,21 @@ int get_solution_cost(const vector<vector<bool>> &solution, const vector<vector<
     {
         for (int j = 0; j < solution_to_problem_rows.at(i).size(); j++)
         {
-            if (solution_to_problem_rows.at(i).size() == problem_rows.at(i).size())
+            int stp_rows_size = solution_to_problem_rows.at(i).size();
+            int p_rows_size = problem_rows.at(i).size();
+            if (stp_rows_size == p_rows_size)
             {
                 if (solution_to_problem_rows.at(i).at(j) != problem_rows.at(i).at(j))
                     rows_cost++;
             }
             else
             {
-                rows_cost++;
+                int size_difference = 0;
+                if (stp_rows_size > p_rows_size)
+                    size_difference = stp_rows_size - p_rows_size;
+                else
+                    size_difference = p_rows_size - stp_rows_size;
+                rows_cost += size_difference;
             }
         }
     }
@@ -289,14 +297,21 @@ int get_solution_cost(const vector<vector<bool>> &solution, const vector<vector<
     {
         for (int j = 0; j < solution_to_problem_cols.at(i).size(); j++)
         {
-            if (solution_to_problem_cols.at(i).size() == problem_cols.at(i).size())
+            int stp_cols_size = solution_to_problem_cols.at(i).size();
+            int p_cols_size = problem_cols.at(i).size();
+            if (stp_cols_size == p_cols_size)
             {
                 if (solution_to_problem_cols.at(i).at(j) != problem_cols.at(i).at(j))
                     cols_cost++;
             }
             else
             {
-                cols_cost++;
+                int size_difference = 0;
+                if (stp_cols_size > p_cols_size)
+                    size_difference = stp_cols_size - p_cols_size;
+                else
+                    size_difference = p_cols_size - stp_cols_size;
+                cols_cost += size_difference;
             }
         }
     }
@@ -306,12 +321,42 @@ int get_solution_cost(const vector<vector<bool>> &solution, const vector<vector<
     return overall_cost;
 }
 
+vector<vector<bool>> get_hillclimbing_solution(const vector<vector<bool>> &solution, const vector<vector<int>> &problem_rows, const vector<vector<int>> &problem_cols, int iterations)
+{
+    vector<vector<bool>> best_solution = solution;
+    vector<vector<int>> cost_index_vec;
+    int current_iteration = 0;
+    int best_cost = get_solution_cost(solution, problem_rows, problem_cols);
+    int current_cost = best_cost;
+    int lowest_cost_idx = 0;
+
+    while (best_cost > 0 && current_iteration <= iterations)
+    {
+        vector<vector<vector<bool>>> neighbors = generate_neighbors(best_solution);
+        for (int i = 0; i < neighbors.size(); i++)
+        {
+            current_cost = get_solution_cost(neighbors.at(i), problem_rows, problem_cols);
+            if (current_cost < best_cost)
+            {
+                cost_index_vec.push_back({current_cost, i});
+            }
+        }
+        if (!cost_index_vec.empty())
+        {
+            auto min_result = min_element(cost_index_vec.begin(), cost_index_vec.end());
+            lowest_cost_idx = distance(cost_index_vec.begin(), min_result);
+            best_cost = cost_index_vec.at(lowest_cost_idx).at(0);
+            best_solution = neighbors.at(cost_index_vec.at(lowest_cost_idx).at(1));
+        }
+        current_iteration++;
+    }
+    return best_solution;
+}
+
 void print_problem(const vector<vector<int>> &problem)
 {
-    cout << "Problem : " << endl;
     for (auto vec : problem)
     {
-        cout << "Vector: ";
         for (auto num : vec)
         {
             cout << num << " ";
@@ -322,7 +367,6 @@ void print_problem(const vector<vector<int>> &problem)
 
 void print_solution(const vector<vector<bool>> &solution)
 {
-    cout << "Solution: " << endl;
     for (auto vec : solution)
     {
         for (auto num : vec)
@@ -338,6 +382,7 @@ int main(int argc, char **argv)
     // get arguments
     auto fname_rows = arg(argc, argv, "fname_rows", string(""));
     auto fname_cols = arg(argc, argv, "fname_cols", string(""));
+    auto iterations = arg(argc, argv, "iterations", 100);
     cout << "# fname_rows = " << fname_rows << ";" << endl;
     cout << "# fname_cols = " << fname_cols << ";" << endl;
 
@@ -361,34 +406,55 @@ int main(int argc, char **argv)
     vector<vector<int>> problem_from_random_solution_cols = get_problem_cols_from_solution(random_solution);
 
     // Testing problem contents...
-    cout << "Initial rows ";
-    print_problem(problem_rows);
+    // cout << "Initial rows " << endl;;
+    // print_problem(problem_rows);
 
-    cout << "Initial cols ";
-    print_problem(problem_cols);
+    // cout << "Initial cols " << endl;;
+    // print_problem(problem_cols);
 
-    cout << "From solution rows ";
-    print_problem(problem_from_random_solution_rows);
+    // cout << "From solution rows ";
+    // print_problem(problem_from_random_solution_rows);
 
-    cout << "From solution cols ";
-    print_problem(problem_from_random_solution_cols);
+    // cout << "From solution cols ";
+    // print_problem(problem_from_random_solution_cols);
 
     // Testing random solution contents...
-    cout << "Random ";
+    cout << "Random cost " << get_solution_cost(random_solution, problem_rows, problem_cols) << endl;
     print_solution(random_solution);
+    // cout << "Problem rows: " << endl;
+    // print_problem(get_problem_rows_from_solution(random_solution));
+    // cout << "Problem cols: " << endl;
+    // print_problem(get_problem_cols_from_solution(random_solution));
 
     // Testing the cost function
     cout << "Random solution cost: " << get_solution_cost(random_solution, problem_rows, problem_cols) << endl;
 
     // Testing the generate neighbors function
-    vector<vector<vector<bool>>> neighbors = generate_neighbors(random_solution);
+    // vector<vector<vector<bool>>> neighbors = generate_neighbors(random_solution);
+    // for (int i = 0; i < neighbors.size(); i++)
+    //{
+    //    cout << "Neighbor " << i << " cost " << get_solution_cost(neighbors.at(i), problem_rows, problem_cols) << endl;
+    //    print_solution(neighbors.at(i));
+    //    cout << "Problem rows: " << endl;
+    //    print_problem(get_problem_rows_from_solution(neighbors.at(i)));
+    //    cout << "Problem cols: " << endl;
+    //    print_problem(get_problem_cols_from_solution(neighbors.at(i)));
+    //}
 
-    cout << "Random neighbor at 0 ";
-    print_solution(neighbors.at(0));
+    // cout << "Random neighbor at 0 ";
+    // print_solution(neighbors.at(0));
 
     // cout << "Random neighbor at 44 ";
     // print_solution(neighbors.at(44));
     //
     // cout << "Random neighbor at 87 ";
     // print_solution(neighbors.at(87));
+
+    auto start = chrono::steady_clock::now();
+    vector<vector<bool>> hillclimbing_solution = get_hillclimbing_solution(random_solution, problem_rows, problem_cols, iterations);
+    auto end = chrono::steady_clock::now();
+    print_solution(hillclimbing_solution);
+    cout << "Cost: " << get_solution_cost(hillclimbing_solution, problem_rows, problem_cols) << endl;
+    cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << endl;
+    cout << "Iterations: " << iterations << endl;
 }

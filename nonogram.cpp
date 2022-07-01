@@ -84,10 +84,10 @@ vector<vector<int>> load_problem(string fname)
     return problem;
 }
 
-vector<vector<int>> load_valid_solution(string fname)
+vector<vector<bool>> load_valid_solution(string fname)
 {
     cout << "Loading valid solution..." << endl;
-    vector<vector<int>> valid_solution;
+    vector<vector<bool>> valid_solution;
     istream *fst = &cin;
     ifstream f;
     if (fname != "")
@@ -102,24 +102,27 @@ vector<vector<int>> load_valid_solution(string fname)
         stringstream sline(line);
         int x;
         int i = 0;
-        std::vector<int> row;
+        std::vector<bool> row;
         while (sline >> x)
         {
-            row.push_back(x);
+            if (x == 0)
+                row.push_back(false);
+            if (x == 1)
+                row.push_back(true);
         }
         valid_solution.push_back(row);
     }
     return valid_solution;
 }
 
-vector<vector<int>> generate_random_solution(vector<vector<int>> problem, const int rows, const int cols)
+vector<vector<bool>> generate_random_solution(vector<vector<int>> problem, const int rows, const int cols)
 {
-    vector<vector<int>> random_solution;
+    vector<vector<bool>> random_solution;
 
     // Initialize random_solution vector
     for (int i = 0; i < rows; i++)
     {
-        vector<int> col(cols, 0);
+        vector<bool> col(cols, 0);
         random_solution.push_back(col);
     }
 
@@ -167,7 +170,7 @@ vector<vector<int>> generate_random_solution(vector<vector<int>> problem, const 
     return random_solution;
 }
 
-vector<vector<int>> get_problem_rows_from_solution(vector<vector<int>> solution)
+vector<vector<int>> get_problem_rows_from_solution(vector<vector<bool>> solution)
 {
     vector<vector<int>> problem;
 
@@ -177,7 +180,7 @@ vector<vector<int>> get_problem_rows_from_solution(vector<vector<int>> solution)
         vector<int> vec;
         for (int j = 0; j < solution.at(i).size(); j++)
         {
-            int current_num = solution.at(i).at(j);
+            bool current_num = solution.at(i).at(j);
             if (current_num != 0)
                 sum++;
 
@@ -204,7 +207,7 @@ vector<vector<int>> get_problem_rows_from_solution(vector<vector<int>> solution)
     return problem;
 }
 
-vector<vector<int>> get_problem_cols_from_solution(vector<vector<int>> solution)
+vector<vector<int>> get_problem_cols_from_solution(vector<vector<bool>> solution)
 {
     vector<vector<int>> problem;
 
@@ -214,7 +217,7 @@ vector<vector<int>> get_problem_cols_from_solution(vector<vector<int>> solution)
         vector<int> vec;
         for (int j = 0; j < solution.size(); j++)
         {
-            int current_num = solution.at(j).at(i);
+            bool current_num = solution.at(j).at(i);
             if (current_num != 0)
                 sum++;
 
@@ -240,18 +243,18 @@ vector<vector<int>> get_problem_cols_from_solution(vector<vector<int>> solution)
     return problem;
 }
 
-vector<vector<vector<int>>> generate_neighbors(vector<vector<int>> solution, const int rows, const int cols)
+vector<vector<vector<bool>>> generate_neighbors(vector<vector<bool>> solution, const int rows, const int cols)
 {
-    vector<vector<vector<int>>> neighbors;
+    vector<vector<vector<bool>>> neighbors;
     for (int i = 0; i < solution.size(); i++)
     {
-        vector<vector<int>> neighbor = solution;
+        vector<vector<bool>> neighbor = solution;
     }
     return neighbors;
 }
 
 // Return the cost of a solution
-int get_solution_cost(vector<vector<int>> solution, vector<vector<int>> problem_rows, vector<vector<int>> problem_cols)
+int get_solution_cost(vector<vector<bool>> solution, vector<vector<int>> problem_rows, vector<vector<int>> problem_cols)
 {
     int overall_cost = 0;
     int rows_cost = 0;
@@ -311,7 +314,7 @@ void print_problem(vector<vector<int>> problem)
     }
 }
 
-void print_solution(vector<vector<int>> solution)
+void print_solution(vector<vector<bool>> solution)
 {
     cout << "Solution: " << endl;
     for (auto vec : solution)
@@ -332,10 +335,10 @@ int main(int argc, char **argv)
     cout << "# fname_rows = " << fname_rows << ";" << endl;
     cout << "# fname_cols = " << fname_cols << ";" << endl;
 
-    // Load the nonogram problem
+    // Load the nonogram problem rows
     vector<vector<int>> problem_rows = load_problem(fname_rows);
 
-    // Load the valid solution
+    // Load the nonogram problem cols
     vector<vector<int>> problem_cols = load_problem(fname_cols);
 
     // get rozmiar of nonogram
@@ -343,7 +346,7 @@ int main(int argc, char **argv)
     const int cols = problem_cols.size();
 
     // Generate random solution test...
-    vector<vector<int>> random_solution = generate_random_solution(problem_rows, rows, cols);
+    vector<vector<bool>> random_solution = generate_random_solution(problem_rows, rows, cols);
 
     // Generate problem from solution rows test...
     vector<vector<int>> problem_from_random_solution_rows = get_problem_rows_from_solution(random_solution);

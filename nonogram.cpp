@@ -46,7 +46,7 @@ auto arg = [](int argc, char **argv, std::string name, auto default_value) -> de
     return std::any_cast<decltype(default_value)>(ret);
 };
 
-vector<vector<int>> load_problem(string fname)
+vector<vector<int>> load_problem(const string &fname)
 {
     cout << "Loading problem..." << endl;
     vector<vector<int>> problem;
@@ -84,7 +84,7 @@ vector<vector<int>> load_problem(string fname)
     return problem;
 }
 
-vector<vector<bool>> load_valid_solution(string fname)
+vector<vector<bool>> load_valid_solution(const string &fname)
 {
     cout << "Loading valid solution..." << endl;
     vector<vector<bool>> valid_solution;
@@ -115,7 +115,7 @@ vector<vector<bool>> load_valid_solution(string fname)
     return valid_solution;
 }
 
-vector<vector<bool>> generate_random_solution(vector<vector<int>> problem, const int rows, const int cols)
+vector<vector<bool>> generate_random_solution(const vector<vector<int>> &problem, const int rows, const int cols)
 {
     vector<vector<bool>> random_solution;
 
@@ -170,7 +170,7 @@ vector<vector<bool>> generate_random_solution(vector<vector<int>> problem, const
     return random_solution;
 }
 
-vector<vector<int>> get_problem_rows_from_solution(vector<vector<bool>> solution)
+vector<vector<int>> get_problem_rows_from_solution(const vector<vector<bool>> &solution)
 {
     vector<vector<int>> problem;
 
@@ -207,7 +207,7 @@ vector<vector<int>> get_problem_rows_from_solution(vector<vector<bool>> solution
     return problem;
 }
 
-vector<vector<int>> get_problem_cols_from_solution(vector<vector<bool>> solution)
+vector<vector<int>> get_problem_cols_from_solution(const vector<vector<bool>> &solution)
 {
     vector<vector<int>> problem;
 
@@ -243,7 +243,7 @@ vector<vector<int>> get_problem_cols_from_solution(vector<vector<bool>> solution
     return problem;
 }
 
-vector<vector<vector<bool>>> generate_neighbors(vector<vector<bool>> solution)
+vector<vector<vector<bool>>> generate_neighbors(const vector<vector<bool>> &solution)
 {
     vector<vector<vector<bool>>> neighbors;
     for (int i = 0; i < solution.size(); i++)
@@ -260,7 +260,7 @@ vector<vector<vector<bool>>> generate_neighbors(vector<vector<bool>> solution)
 }
 
 // Return the cost of a solution
-int get_solution_cost(vector<vector<bool>> solution, vector<vector<int>> problem_rows, vector<vector<int>> problem_cols)
+int get_solution_cost(const vector<vector<bool>> &solution, const vector<vector<int>> &problem_rows, const vector<vector<int>> &problem_cols)
 {
     int overall_cost = 0;
     int rows_cost = 0;
@@ -306,7 +306,7 @@ int get_solution_cost(vector<vector<bool>> solution, vector<vector<int>> problem
     return overall_cost;
 }
 
-void print_problem(vector<vector<int>> problem)
+void print_problem(const vector<vector<int>> &problem)
 {
     cout << "Problem : " << endl;
     for (auto vec : problem)
@@ -320,7 +320,7 @@ void print_problem(vector<vector<int>> problem)
     }
 }
 
-void print_solution(vector<vector<bool>> solution)
+void print_solution(const vector<vector<bool>> &solution)
 {
     cout << "Solution: " << endl;
     for (auto vec : solution)

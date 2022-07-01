@@ -195,7 +195,7 @@ vector<vector<int>> get_problem_rows_from_solution(vector<vector<bool>> solution
                 vec.push_back(sum);
                 sum = 0;
             }
-            if (current_num != 0 && j == solution.at(i).size() - 1)
+            if (current_num != 0 && j == solution.at(i).size() - 1 && vec.empty())
             {
                 vec.push_back(sum);
                 sum = 0;
@@ -232,7 +232,7 @@ vector<vector<int>> get_problem_cols_from_solution(vector<vector<bool>> solution
                 vec.push_back(sum);
                 sum = 0;
             }
-            if (current_num != 0 && j == solution.size() - 1)
+            if (current_num != 0 && j == solution.size() - 1 && vec.empty())
             {
                 vec.push_back(sum);
                 sum = 0;
@@ -243,12 +243,18 @@ vector<vector<int>> get_problem_cols_from_solution(vector<vector<bool>> solution
     return problem;
 }
 
-vector<vector<vector<bool>>> generate_neighbors(vector<vector<bool>> solution, const int rows, const int cols)
+vector<vector<vector<bool>>> generate_neighbors(vector<vector<bool>> solution)
 {
     vector<vector<vector<bool>>> neighbors;
     for (int i = 0; i < solution.size(); i++)
     {
-        vector<vector<bool>> neighbor = solution;
+
+        for (int j = 0; j < solution.at(i).size(); j++)
+        {
+            vector<vector<bool>> neighbor = solution;
+            neighbor.at(i).at(j) = !neighbor.at(i).at(j);
+            neighbors.push_back(neighbor);
+        }
     }
     return neighbors;
 }
@@ -371,5 +377,18 @@ int main(int argc, char **argv)
     cout << "Random ";
     print_solution(random_solution);
 
+    // Testing the cost function
     cout << "Random solution cost: " << get_solution_cost(random_solution, problem_rows, problem_cols) << endl;
+
+    // Testing the generate neighbors function
+    vector<vector<vector<bool>>> neighbors = generate_neighbors(random_solution);
+
+    cout << "Random neighbor at 0 ";
+    print_solution(neighbors.at(0));
+
+    // cout << "Random neighbor at 44 ";
+    // print_solution(neighbors.at(44));
+    //
+    // cout << "Random neighbor at 87 ";
+    // print_solution(neighbors.at(87));
 }

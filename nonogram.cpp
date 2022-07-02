@@ -435,23 +435,85 @@ vector<vector<bool>> get_hillclimbing_random_solution(const vector<vector<bool>>
     while (best_cost > 0 && current_iteration <= iterations)
     {
         vector<vector<vector<bool>>> neighbors = generate_neighbors(best_solution);
+        vector<int> costs;
+        vector<vector<int>> costs_indices;
+        int cost;
+        int sum = 0;
         // cout << "Iteration: " << current_iteration << endl;
         // for (auto nei : neighbors)
         //{
         //     print_solution(nei);
         //     cout << get_solution_cost(nei, problem_rows, problem_cols) << endl;;
         // }
-        //
 
-        auto new_solution = get_best_neighbor(neighbors, problem_rows, problem_cols);
-        auto new_cost = get_solution_cost(new_solution, problem_rows, problem_cols);
-        auto current_cost = get_solution_cost(best_solution, problem_rows, problem_cols);
-        if (new_cost <= current_cost)
+        for (auto nei : neighbors)
         {
-            best_solution = new_solution;
+            cost = get_solution_cost(nei, problem_rows, problem_cols);
+            if (cost == 0)
+                return nei;
+            sum += cost;
+            costs.push_back(cost);
         }
-        else
-            break;
+
+        for (int i = 0; i < costs.size(); i++)
+        {
+            costs_indices.push_back({sum - costs.at(i), i});
+        }
+
+        sort(costs_indices.begin(), costs_indices.end());
+        reverse(costs_indices.begin(), costs_indices.end());
+
+        uniform_int_distribution<int> distr(0, sum);
+        int random = distr(random_generator);
+
+        int pick_idx = 0;
+        for (auto ci : costs_indices)
+        {
+            random -= ci.at(0);
+            if (random <= 0)
+            {
+                pick_idx = ci.at(1);
+                break;
+            }
+        }
+
+        best_solution = neighbors.at(pick_idx);
+        best_cost = get_solution_cost(neighbors.at(pick_idx), problem_rows, problem_cols);
+
+        // for (auto ci : costs_indices)
+        //{
+        //     cout << ci.at(0) << "  " << ci.at(1) << endl;
+        // }
+
+        // uniform_int_distribution<int> distr(0, neighbors.size() - 1);
+        // int idx1 = distr(random_generator);
+        // int idx2 = distr(random_generator);
+        //
+        // vector<vector<bool>> random_neighbor1 = neighbors.at(idx1);
+        // vector<vector<bool>> random_neighbor2 = neighbors.at(idx2);
+        //
+        // int random_neighbor1_cost = get_solution_cost(random_neighbor1, problem_rows, problem_cols);
+        // int random_neighbor2_cost = get_solution_cost(random_neighbor2, problem_rows, problem_cols);
+        //
+        //
+        // if (random_neighbor1_cost < random_neighbor2_cost)
+        //{
+        //     best_solution = random_neighbor1;
+        // }
+        // else
+        //{
+        //     best_solution = random_neighbor2;
+        // }
+        //
+        // auto new_solution = get_best_neighbor(neighbors, problem_rows, problem_cols);
+        // auto new_cost = get_solution_cost(new_solution, problem_rows, problem_cols);
+        // auto current_cost = get_solution_cost(best_solution, problem_rows, problem_cols);
+        // if (new_cost <= current_cost)
+        //{
+        //     best_solution = new_solution;
+        // }
+        // else
+        //     break;
 
         // cout << "Best solution cost: " << best_cost << endl;
         current_iteration++;
@@ -566,8 +628,8 @@ int main(int argc, char **argv)
     // get arguments
     auto fname_rows = arg(argc, argv, "fname_rows", string(""));
     auto fname_cols = arg(argc, argv, "fname_cols", string(""));
-    auto iterations = arg(argc, argv, "iterations", 500);
-    auto perfect_solution = arg(argc, argv, "solution", string(""));
+    auto iterations = arg(argc, argv, "iterations", 1000);
+    // auto perfect_solution = arg(argc, argv, "solution", string(""));
     cout << "# fname_rows = " << fname_rows << ";" << endl;
     cout << "# fname_cols = " << fname_cols << ";" << endl;
 
@@ -577,8 +639,8 @@ int main(int argc, char **argv)
     // Load the nonogram problem cols
     vector<vector<int>> problem_cols = load_problem(fname_cols);
 
-    vector<vector<bool>> valid_solution = load_valid_solution(perfect_solution);
-    cout << "Cost perfect: " << get_solution_cost(valid_solution, problem_rows, problem_cols) << endl;
+    // vector<vector<bool>> valid_solution = load_valid_solution(perfect_solution);
+    // cout << "Cost perfect: " << get_solution_cost(valid_solution, problem_rows, problem_cols) << endl;
 
     // get rozmiar of nonogram
     const int rows = problem_rows.size();
@@ -652,14 +714,14 @@ int main(int argc, char **argv)
     cout << "Iterations: " << iterations << endl;
 
     // Hillclimbing random
-    // cout << "Hillclimbing Random solution: " << endl;
-    // auto start2 = chrono::steady_clock::now();
-    // vector<vector<bool>> hillclimbing_random_solution = get_hillclimbing_random_solution(random_solution, problem_rows, problem_cols, iterations);
-    // auto end2 = chrono::steady_clock::now();
-    // print_solution(hillclimbing_random_solution);
-    // cout << "Cost: " << get_solution_cost(hillclimbing_random_solution, problem_rows, problem_cols) << endl;
-    // cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end2 - start2).count() << endl;
-    // cout << "Iterations: " << iterations << endl;
+    cout << "Hillclimbing Random solution: " << endl;
+    auto start2 = chrono::steady_clock::now();
+    vector<vector<bool>> hillclimbing_random_solution = get_hillclimbing_random_solution(random_solution, problem_rows, problem_cols, iterations);
+    auto end2 = chrono::steady_clock::now();
+    print_solution(hillclimbing_random_solution);
+    cout << "Cost: " << get_solution_cost(hillclimbing_random_solution, problem_rows, problem_cols) << endl;
+    cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end2 - start2).count() << endl;
+    cout << "Iterations: " << iterations << endl;
 
     //// Tabu search
     // cout << "Tabu solution: " << endl;

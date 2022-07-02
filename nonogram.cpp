@@ -705,10 +705,22 @@ vector<vector<vector<bool>>> cross_two_solutions(vector<vector<bool>> sol1, vect
 {
     vector<vector<vector<bool>>> two_solutions;
 
-    // for (int i = 0; i < sol1.size(); i++)
-    //{
-    //
-    // }
+    vector<vector<bool>> new_sol1;
+    vector<vector<bool>> new_sol2;
+
+    for (int i = 0; i < sol1.size() / 2; i++)
+    {
+        new_sol1.push_back(sol1.at(i));
+        new_sol2.push_back(sol1.at(i + sol1.size() / 2));
+    }
+    for (int i = 0; i < sol2.size() / 2; i++)
+    {
+        new_sol1.push_back(sol2.at(i));
+        new_sol2.push_back(sol2.at(i + sol2.size() / 2));
+    }
+
+    two_solutions.push_back(new_sol1);
+    two_solutions.push_back(new_sol2);
 
     return two_solutions;
 }
@@ -719,10 +731,10 @@ vector<vector<vector<bool>>> get_crossover(const vector<vector<vector<bool>>> &o
     vector<vector<vector<bool>>> crossed_over;
     int initial_size = original_population.size();
 
-    while (crossed_over.size() <= initial_size * 2)
+    while (crossed_over.size() < initial_size * 2)
     {
         // Cross-over
-        uniform_int_distribution<int> distr(1, population.size());
+        uniform_int_distribution<int> distr(1, population.size() - 1);
         int idx1 = distr(random_generator);
         int idx2 = distr(random_generator);
 
@@ -731,39 +743,69 @@ vector<vector<vector<bool>>> get_crossover(const vector<vector<vector<bool>>> &o
         {
             idx2 = distr(random_generator);
         }
+        vector<vector<vector<bool>>> two_crossed_sols = cross_two_solutions(population.at(idx1), population.at(idx2));
+        crossed_over.push_back(two_crossed_sols.at(0));
+        crossed_over.push_back(two_crossed_sols.at(1));
     }
 
     return crossed_over;
 }
 
+vector<vector<bool>> small_mutation(const vector<vector<bool>> solution)
+{
+    auto mutated = solution;
+    uniform_int_distribution<int> row_distr(0, solution.size() - 1);
+    uniform_int_distribution<int> col_distr(0, solution.at(0).size() - 1);
+    int row = row_distr(random_generator);
+    int col = col_distr(random_generator);
+    mutated.at(row).at(col) = !mutated.at(row).at(col);
+    return mutated;
+}
+
+vector<vector<vector<bool>>> get_mutation(const vector<vector<vector<bool>>> &original_population, const int one_in_chance)
+{
+    vector<vector<vector<bool>>> mutated = original_population;
+
+    uniform_int_distribution<int> distr(0, one_in_chance);
+
+    for (int i = 0; i < mutated.size(); i++)
+    {
+        int randomize = distr(random_generator);
+        if (randomize == one_in_chance)
+        {
+            mutated.at(i) = small_mutation(mutated.at(i));
+        }
+    }
+
+    return mutated;
+}
+
 vector<vector<bool>> get_genetic_solution(const vector<vector<bool>> &solution, const vector<vector<int>> &problem_rows, const vector<vector<int>> &problem_cols, int iterations, int population_size)
 {
+    vector<vector<vector<bool>>> start_population = create_population(problem_rows.size(), problem_cols.size(), population_size);
     vector<vector<bool>> current_solution = solution;
     vector<vector<bool>> best_solution = solution;
     int current_iteration = 0;
     int current_cost = get_solution_cost(solution, problem_rows, problem_cols);
     int best_cost = current_cost;
 
-    // WORK START
-    vector<vector<vector<bool>>> start_population = create_population(problem_rows.size(), problem_cols.size(), population_size);
-
-    vector<vector<vector<bool>>> selection = create_selection(start_population, problem_rows, problem_cols);
-    // WORK END
-
-    // populacja poczatkowa
-    // ocena
-
-    // Powtarzaj !warunek zakonczenia
-    //      selekcja
-    //      krzyżowanie
-    //      mutacja
-    //      ocena + nowa populacja
-
-    while (current_cost > 0 && current_iteration < iterations)
+    while (best_cost > 0 && current_iteration < iterations)
     {
-        vector<vector<vector<bool>>> neighbors = generate_neighbors(current_solution);
+        vector<vector<vector<bool>>> selection = create_selection(start_population, problem_rows, problem_cols);
 
-        // cout << "Best solution cost: " << best_cost << endl;
+        vector<vector<vector<bool>>> crossover = get_crossover(selection);
+
+        vector<vector<vector<bool>>> mutated = get_mutation(crossover, 50);
+
+        for (int i = 0; i < selection.size(); i++)
+        {
+            current_cost = get_solution_cost(selection.at(i), problem_rows, problem_cols);
+            if (current_cost < best_cost)
+            {
+                best_solution = current_solution;
+                best_cost = current_cost;
+            }
+        }
         current_iteration++;
     }
     genetic_it = current_iteration;
@@ -777,16 +819,16 @@ int main(int argc, char **argv)
     auto fname_cols = arg(argc, argv, "fname_cols", string(""));
     auto seed = arg(argc, argv, "seed", string(""));
     auto iterations = arg(argc, argv, "iterations", 100);
-    auto crossover = arg(argc, argv, "crossover", string(""));
-    auto mutation = arg(argc, argv, "mutation", string(""));
+    // auto crossover = arg(argc, argv, "crossover", string(""));
+    // auto mutation = arg(argc, argv, "mutation", string(""));
     auto population = arg(argc, argv, "population", 100);
     // auto perfect_solution = arg(argc, argv, "solution", string(""));
     cout << "# fname_rows = " << fname_rows << ";" << endl;
     cout << "# fname_cols = " << fname_cols << ";" << endl;
     cout << "# seed = " << seed << ";" << endl;
     cout << "# iterations = " << iterations << ";" << endl;
-    cout << "# crossover = " << crossover << ";" << endl;
-    cout << "# mutation = " << mutation << ";" << endl;
+    // cout << "# crossover = " << crossover << ";" << endl;
+    // cout << "# mutation = " << mutation << ";" << endl;
     cout << "# population = " << population << ";" << endl;
 
     // Load the nonogram problem rows

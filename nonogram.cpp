@@ -16,6 +16,11 @@ using namespace std;
 random_device rd;
 mt19937 random_generator(rd());
 
+int hillclimbing_deter_it = 0;
+int hillclimbing_random_it = 0;
+int tabu_it = 0;
+int sim_annealing_it = 0;
+
 auto arg = [](int argc, char **argv, std::string name, auto default_value) -> decltype(default_value)
 {
     // using namespace std;
@@ -403,7 +408,7 @@ vector<vector<bool>> get_hillclimbing_solution(const vector<vector<bool>> &solut
     int current_iteration = 0;
     int best_cost = get_solution_cost(solution, problem_rows, problem_cols);
 
-    while (best_cost > 0 && current_iteration <= iterations)
+    while (best_cost > 0 && current_iteration < iterations)
     {
         vector<vector<vector<bool>>> neighbors = generate_neighbors(best_solution);
         // cout << "Iteration: " << current_iteration << endl;
@@ -427,6 +432,7 @@ vector<vector<bool>> get_hillclimbing_solution(const vector<vector<bool>> &solut
         // cout << "Best solution cost: " << best_cost << endl;
         current_iteration++;
     }
+    hillclimbing_deter_it = current_iteration;
     return best_solution;
 }
 
@@ -436,7 +442,7 @@ vector<vector<bool>> get_hillclimbing_random_solution(const vector<vector<bool>>
     int current_iteration = 0;
     int best_cost = get_solution_cost(solution, problem_rows, problem_cols);
 
-    while (best_cost > 0 && current_iteration <= iterations)
+    while (best_cost > 0 && current_iteration < iterations)
     {
         vector<vector<vector<bool>>> neighbors = generate_neighbors(best_solution);
         vector<int> costs;
@@ -522,6 +528,54 @@ vector<vector<bool>> get_hillclimbing_random_solution(const vector<vector<bool>>
         // cout << "Best solution cost: " << best_cost << endl;
         current_iteration++;
     }
+    hillclimbing_random_it = current_iteration;
+    return best_solution;
+}
+
+double temperature(int t)
+{
+    double temp = static_cast<double>(t);
+    return 1000 / temp;
+}
+
+vector<vector<bool>> get_simulated_annealing_solution(const vector<vector<bool>> &solution, const vector<vector<int>> &problem_rows, const vector<vector<int>> &problem_cols, int iterations)
+{
+    vector<vector<bool>> current_solution = solution;
+    vector<vector<bool>> best_solution = solution;
+    int current_iteration = 0;
+    int current_cost = get_solution_cost(solution, problem_rows, problem_cols);
+    int best_cost = current_cost;
+
+    while (current_cost > 0 && current_iteration < iterations)
+    {
+        vector<vector<vector<bool>>> neighbors = generate_neighbors(current_solution);
+        for (auto nei : neighbors)
+        {
+            int nei_cost = get_solution_cost(nei, problem_rows, problem_cols);
+            if (nei_cost < current_cost)
+            {
+                current_solution = nei;
+                current_cost = nei_cost;
+            }
+            else
+            {
+                uniform_real_distribution<double> u(0, 1);
+                if (u(random_generator) < exp(-abs(current_cost - nei_cost)) / temperature(current_iteration))
+                {
+                    current_solution = nei;
+                }
+            }
+            if (current_cost < best_cost)
+            {
+                best_solution = current_solution;
+                best_cost = current_cost;
+            }
+        }
+
+        // cout << "Best solution cost: " << best_cost << endl;
+        current_iteration++;
+    }
+    sim_annealing_it = current_iteration;
     return best_solution;
 }
 
@@ -535,7 +589,7 @@ vector<vector<bool>> get_tabu_solution(const vector<vector<bool>> &solution, con
     steps.push(solution);
     int current_iteration = 0;
 
-    while (get_solution_cost(current_solution, problem_rows, problem_cols) > 0 && current_iteration <= iterations && !steps.empty())
+    while (get_solution_cost(current_solution, problem_rows, problem_cols) > 0 && current_iteration < iterations && !steps.empty())
     {
         vector<vector<vector<bool>>> neighbors = generate_neighbors(current_solution);
         vector<vector<vector<bool>>> valid_neighbors;
@@ -580,6 +634,7 @@ vector<vector<bool>> get_tabu_solution(const vector<vector<bool>> &solution, con
         // cout << "Best solution cost: " << get_solution_cost(best_solution, problem_rows, problem_cols) << endl;
         current_iteration++;
     }
+    tabu_it = current_iteration;
     return best_solution;
 }
 
@@ -691,10 +746,13 @@ int main(int argc, char **argv)
     // get arguments
     auto fname_rows = arg(argc, argv, "fname_rows", string(""));
     auto fname_cols = arg(argc, argv, "fname_cols", string(""));
+    auto seed = arg(argc, argv, "seed", string(""));
     auto iterations = arg(argc, argv, "iterations", 1000);
     // auto perfect_solution = arg(argc, argv, "solution", string(""));
     cout << "# fname_rows = " << fname_rows << ";" << endl;
     cout << "# fname_cols = " << fname_cols << ";" << endl;
+    cout << "# seed = " << seed << ";" << endl;
+    cout << "# iterations = " << iterations << ";" << endl;
 
     // Load the nonogram problem rows
     vector<vector<int>> problem_rows = load_problem(fname_rows);
@@ -711,7 +769,10 @@ int main(int argc, char **argv)
 
     // Generate random solution test...
     // vector<vector<bool>> random_solution = generate_random_solution(problem_rows, rows, cols);
-    vector<vector<bool>> random_solution = generate_completely_random_solution(problem_rows, rows, cols);
+    // vector<vector<bool>> random_solution = generate_completely_random_solution(problem_rows, rows, cols);
+
+    // Load seed into solution
+    vector<vector<bool>> random_solution = load_valid_solution(seed);
 
     // Generate problem from solution rows test...
     vector<vector<int>> problem_from_random_solution_rows = get_problem_rows_from_solution(random_solution);
@@ -774,7 +835,7 @@ int main(int argc, char **argv)
     print_solution(hillclimbing_solution);
     cout << "Cost: " << get_solution_cost(hillclimbing_solution, problem_rows, problem_cols) << endl;
     cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << endl;
-    cout << "Iterations: " << iterations << endl;
+    cout << "Iterations: " << hillclimbing_deter_it << endl;
 
     // Hillclimbing random
     cout << "Hillclimbing Random solution: " << endl;
@@ -784,7 +845,7 @@ int main(int argc, char **argv)
     print_solution(hillclimbing_random_solution);
     cout << "Cost: " << get_solution_cost(hillclimbing_random_solution, problem_rows, problem_cols) << endl;
     cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end2 - start2).count() << endl;
-    cout << "Iterations: " << iterations << endl;
+    cout << "Iterations: " << hillclimbing_random_it << endl;
 
     // Tabu solution
     cout << "Tabu solution: " << endl;
@@ -794,7 +855,17 @@ int main(int argc, char **argv)
     print_solution(tabu_solution);
     cout << "Cost: " << get_solution_cost(tabu_solution, problem_rows, problem_cols) << endl;
     cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end3 - start3).count() << endl;
-    cout << "Iterations: " << iterations << endl;
+    cout << "Iterations: " << tabu_it << endl;
+
+    // Simulated annealing
+    cout << "Simulated annealing solution: " << endl;
+    auto start4 = chrono::steady_clock::now();
+    vector<vector<bool>> simulated_annealing_solution = get_simulated_annealing_solution(random_solution, problem_rows, problem_cols, iterations);
+    auto end4 = chrono::steady_clock::now();
+    print_solution(simulated_annealing_solution);
+    cout << "Cost: " << get_solution_cost(simulated_annealing_solution, problem_rows, problem_cols) << endl;
+    cout << "Execution time in miliseconds: " << chrono::duration_cast<chrono::milliseconds>(end4 - start4).count() << endl;
+    cout << "Iterations: " << sim_annealing_it << endl;
 
     //// Tabu search
     // cout << "Tabu solution: " << endl;
